@@ -80,7 +80,10 @@ void parse_line(std::ifstream &in_file, std::stringstream &ss)
   // otherwise, get the input
   else {
     n_map.emplace(addr_buf, "gat" + std::to_string(addr_buf));
-    std::string ans_buf = wire_type + " " + name_buf + "(" + n_map[addr_buf];
+    if (wire_type == "buff")
+      wire_type = "buf";
+
+    std::string ans_buf = wire_type + " " + name_buf + " (" + n_map[addr_buf];
     get_input(in_file, ss, ans_buf);
   }
 
