@@ -11,6 +11,12 @@
 
 
 namespace detail {
+  /**
+   * The struct WIRE have two elements, address and the wire name.
+   * For example, "1     1gat inpt    1   0      >sa1" in isc,
+   * its address is integer 1, and its name is gat1.
+   * The rule of the name will be explained in detail below.
+   */
   struct WIRE {
     uint32_t addr;
     std::string name;
@@ -22,8 +28,15 @@ namespace detail {
 
   std::vector<WIRE> input, output;    // the list of input and output wire
   std::map<uint32_t, std::string> n_map;    // the map of address and wire/gate name
-  std::vector<std::string> ans;
+  std::vector<std::string> ans;    // the answer buffer
 
+  /**
+   * @brief Get the input, if the number "fanin" is not 0, it will get in this function.
+   *
+   * @param in_file The source file.
+   * @param ss A std::stringstream helping the code to translate a single line into mulitple inputs.
+   * @param ans_buf A single line of the answer, which will be push in the answer vector above.
+   */
   void get_input(std::ifstream &in_file, std::stringstream &ss, std::string &ans_buf)
   {
     std::string line_buf;
@@ -40,16 +53,31 @@ namespace detail {
     clear_ss(ss);
   }
 
+  /**
+   * @brief Get the output, if the number "fanout" is bigger than 1, it will get in this function.
+   *
+   * @param in_file The source file.
+   * @param ss A std::stringstream helping the code to translate a single line into mulitple outputs.
+   * @param fanout The number of fanout, it can determine how many lines it should read.
+   * @param source_addr The address of the source wire, which will help me assign wire.
+   */
   void get_output(std::ifstream &in_file, std::stringstream &ss, uint32_t fanout, uint32_t source_addr)
   {
     std::string line_buf, name_buf;
+
+    /**
+     * The address of the wire, it can help the code generate the name of wires,
+     * the rule of the name of normal wire(not output wire) is string "gat" plus its address,
+     * for example, if the wire address is 8 and it isn't output wire, then the name of the
+     * wire is "gat8"
+     */
     uint32_t addr_buf;
 
     for (; fanout > 0; --fanout) {
       std::getline(in_file, line_buf);
       ss << line_buf;
       ss >> addr_buf >> name_buf;
-      n_map.emplace(addr_buf, "gat" + std::to_string(addr_buf));
+      n_map.emplace(addr_buf, "gat" + std::to_string(addr_buf));    // push the wire into the map of address and wire/gate name.
       ans.emplace_back("assign " + n_map[addr_buf] + " = " + n_map[source_addr] + ";\n");    // when there are output from somewhere, assign it together.
 
       clear_ss(ss);
@@ -57,6 +85,14 @@ namespace detail {
   }
 }    // namespace detail
 
+
+/**
+ * @brief Parse each line, it will depends on the type of wire/gate to determine
+ *        which function it should use.
+ *
+ * @param in_file The source file
+ * @param ss A std::stringstream helping the code to translate a single line into mulitple components.
+ */
 void parse_line(std::ifstream &in_file, std::stringstream &ss)
 {
   using namespace detail;
@@ -68,7 +104,7 @@ void parse_line(std::ifstream &in_file, std::stringstream &ss)
 
   // if fanout is 0, it's an output line.
   if (fanout == 0) {
-    n_map.emplace(addr_buf, "gat_out" + std::to_string(addr_buf));
+    n_map.emplace(addr_buf, "gat_out" + std::to_string(addr_buf));    // The name of the output wire is "gat_out" plus its address.
     output.emplace_back(addr_buf, "gat_out" + std::to_string(addr_buf));
   }
 
@@ -80,6 +116,7 @@ void parse_line(std::ifstream &in_file, std::stringstream &ss)
   // otherwise, get the input
   else {
     n_map.emplace(addr_buf, "gat" + std::to_string(addr_buf));
+    // buff in verilog is named "buf"
     if (wire_type == "buff")
       wire_type = "buf";
 
@@ -92,6 +129,13 @@ void parse_line(std::ifstream &in_file, std::stringstream &ss)
     get_output(in_file, ss, fanout, addr_buf);
 }
 
+
+/**
+ * @brief Output the answer to the file
+ *
+ * @param out_file The target of the output file
+ * @param argv The name of the output file.
+ */
 void print_file(std::ostream &out_file, char *argv)
 {
   using namespace detail;
