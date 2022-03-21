@@ -120,7 +120,7 @@ void parse_line(std::ifstream &in_file, std::stringstream &ss)
     if (wire_type == "buff")
       wire_type = "buf";
 
-    std::string ans_buf = wire_type + " " + name_buf + " (" + n_map[addr_buf];
+    std::string ans_buf = wire_type + " _" + name_buf + " (" + n_map[addr_buf];
     get_input(in_file, ss, ans_buf);
   }
 
