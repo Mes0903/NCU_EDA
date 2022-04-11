@@ -3,7 +3,7 @@ Language: Cpp
 MaxEmptyLinesToKeep: 3
 IndentCaseLabels: false
 AllowShortIfStatementsOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
 AllowShortLoopsOnASingleLine: false
 DerivePointerAlignment: false
 PointerAlignment: Right
