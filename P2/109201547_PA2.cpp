@@ -57,13 +57,15 @@ namespace Type_base {
 
   // the operation type
   enum class TYPE : uint8_t {
-    NOP,
+    BEGIN,
     INPUT,
     ADD,
     MULTIPLY,
-    OUTPUT
+    OUTPUT,
+    END,
+    DEFAULT
   };
-  constexpr int UNIT[] = { 1, 1, 1, 3, 0 };    // use as a mapping from type to unit time
+  constexpr int UNIT[] = { 0, 1, 1, 3, 1, 1, -1 };    // use as a mapping from type to unit time
 
   class Node {
   public:
@@ -88,8 +90,7 @@ namespace Type_base {
     inline const bool is_scheduled() const noexcept { return scheduled; }
 
     // constructors
-    Node() noexcept
-        : unit(), label(), layer(-1), changed(false), Type(TYPE::NOP), scheduled(false), tS(), tL() {}
+    Node() = delete;
 
     Node(int label, TYPE Type) noexcept
         : unit(UNIT[static_cast<typename std::underlying_type<TYPE>::type>(Type)]), label(label), layer(), changed(false), Type(Type), scheduled(false), tS(), tL() {}
@@ -139,7 +140,7 @@ namespace Pre_work {
       case '+': return TYPE::ADD;
       case '*': return TYPE::MULTIPLY;
       case 'o': return TYPE::OUTPUT;
-      default: return TYPE::NOP;
+      default: return TYPE::DEFAULT;
       }
     }    // end parse_type
   }    // namespace Pre_detail
@@ -151,12 +152,13 @@ namespace Pre_work {
     using Transform::buf;
     using Transform::ss;
     using Transform::trans_input;
+    using Type_base::TYPE;
 
     std::getline(in_file, buf), trans_input(latency);
     std::getline(in_file, buf), trans_input(node_num);
     std::getline(in_file, buf), trans_input(edge_num);
     List.reserve(node_num + 2);
-    List.emplace_back();
+    List.emplace_back(0, TYPE::BEGIN);
   }    // end get_title
 
   // push all the nodes in the file to the List vector
@@ -187,7 +189,7 @@ namespace Pre_work {
       }
     }
 
-    List.emplace_back(node_num + 1, TYPE::NOP);
+    List.emplace_back(node_num + 1, TYPE::END);
     while (!output_buf.empty()) {
       label = output_buf.top();
       output_buf.pop();
@@ -255,7 +257,7 @@ namespace Schedule_Alg {
               wait_queue.push_back(child_label);
             }
 
-            max_step = 0, tmp_step = 0;
+            max_step = 0, tmp_step = 0, pass_flag = true;
           }
         }
 
@@ -270,16 +272,14 @@ namespace Schedule_Alg {
 
     bool ALAP(const int latency) noexcept
     {
-      bool success_flag = true;
-
       using namespace Type_base;
       std::vector<int> wait_queue, child_queue;
       int last = List.size() - 1;
       List[last].set_scheduled(true);
-      List[last].set_tL(latency);
+      List[last].set_tL(latency + 2);
       child_queue.push_back(last);
 
-      int tmp_step, min_step = 0;
+      int tmp_step, min_step = latency + 2;
       bool pass_flag = true;
       while (!List[0].is_scheduled()) {
         for (const int &current_child : child_queue) {
@@ -290,29 +290,33 @@ namespace Schedule_Alg {
                 break;
               }
 
-              tmp_step = List[child_label].get_tL() - List[child_label].get_unit();
+              tmp_step = List[child_label].get_tL() - List[parent_label].get_unit();
               if (min_step > tmp_step)
                 min_step = tmp_step;
             }
 
-            if (min_step < 0)
-              return false;
+            if (pass_flag && min_step < 0)
+              return false;    // cant complete this scheduled
 
             if (pass_flag) {
               List[parent_label].set_tL(min_step);
               List[parent_label].set_scheduled(true);
               wait_queue.push_back(parent_label);
             }
-          }
 
-          child_queue = std::move(wait_queue);
-          wait_queue.clear();
-          wait_queue.reserve(2 * child_queue.size());
+            min_step = latency + 2, tmp_step = 0, pass_flag = true;
+          }
         }
+
+        child_queue = std::move(wait_queue);
+        wait_queue.clear();
+        wait_queue.reserve(2 * child_queue.size());
       }
 
       for (Node &node : List)
         node.set_scheduled(false);
+
+      return true;    // success scheduled
     }
   }    // namespace Alg_detail
 }    // namespace Schedule_Alg
@@ -339,6 +343,7 @@ int main(int argc, char *argv[])
 
   using namespace Schedule_Alg::Alg_detail;
   ASAP();
+  ALAP(latency);
 
   for (const auto &node : List) {
     std::cout << node.get_label() << " Parent is : ";
@@ -352,6 +357,9 @@ int main(int argc, char *argv[])
 
   for (const auto &node : List)
     std::cout << node.get_label() << " tS is : " << node.get_tS() << "\n";
+
+  for (const auto &node : List)
+    std::cout << node.get_label() << " tL is : " << node.get_tL() << "\n";
 
   /* output ans to the file*/
   std::ofstream out_file(argv[2]);
