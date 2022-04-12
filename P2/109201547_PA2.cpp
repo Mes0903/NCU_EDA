@@ -89,6 +89,9 @@ namespace Type_base {
     inline const bool is_changed() const noexcept { return changed; }
     inline const bool is_scheduled() const noexcept { return scheduled; }
 
+    // counting getter
+    inline const int get_mobility() const noexcept { return tL - tS; }
+
     // constructors
     Node() = delete;
 
@@ -317,8 +320,12 @@ namespace Schedule_Alg {
         node.set_scheduled(false);
 
       return true;    // success scheduled
-    }
+    }    // end ALAP
   }    // namespace Alg_detail
+
+  void Force(const int latency) noexcept
+  {
+  }
 }    // namespace Schedule_Alg
 
 int main(int argc, char *argv[])
@@ -367,7 +374,6 @@ int main(int argc, char *argv[])
     std::cerr << "Cannot open file: " << argv[2] << '\n';
     exit(1);
   }
-
 
   return 0;
 }
