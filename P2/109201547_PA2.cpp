@@ -96,12 +96,12 @@ namespace Type_base {
     Node() = delete;
 
     Node(int label, TYPE Type) noexcept
-        : unit(UNIT[static_cast<typename std::underlying_type<TYPE>::type>(Type)]), label(label), layer(), changed(false), Type(Type), scheduled(false), tS(), tL() {}
+        : unit(UNIT[static_cast<typename std::underlying_type<TYPE>::type>(Type)]), label(label), layer(), changed(true), Type(Type), scheduled(false), tS(), tL(), probability() {}
 
     Node(const Node &other) = delete;    // nodes are unique
 
     Node(Node &&other) noexcept
-        : unit(other.unit), label(other.label), layer(other.layer), changed(other.changed), Type(other.Type), tS(other.tS), tL(other.tL)
+        : unit(other.unit), label(other.label), layer(other.layer), changed(other.changed), Type(other.Type), tS(other.tS), tL(other.tL), probability(other.probability)
     {
       parents = std::move(other.parents);
       children = std::move(other.children);
@@ -111,7 +111,7 @@ namespace Type_base {
     Node &operator=(const Node &other) = delete;    // nodes are unique
     Node &operator=(Node &&other) noexcept
     {
-      unit = other.unit, label = other.label, layer = other.layer, changed = other.changed, Type = other.Type, tS = other.tS, tL = other.tL;
+      unit = other.unit, label = other.label, layer = other.layer, changed = other.changed, Type = other.Type, tS = other.tS, tL = other.tL, probability = other.probability;
 
       parents = std::move(other.parents);
       children = std::move(other.children);
@@ -126,6 +126,7 @@ namespace Type_base {
   private:
     int unit, label, layer;
     int tS, tL;    // step number of ASAP and ALAP;
+    double probability;
     TYPE Type;
     bool changed, scheduled;
   };
@@ -225,19 +226,20 @@ namespace Schedule_Alg {
   std::vector<Type_base::Node> List;
 
   namespace Alg_detail {
-    void ASAP() noexcept
+
+    std::vector<int> wait_queue, task_queue;
+
+    void Alg_ASAP() noexcept
     {
       using namespace Type_base;
-
-      std::vector<int> wait_queue, parent_queue;
       int last = List.size() - 1;
       List[0].set_scheduled(true);
-      parent_queue.push_back(0);
+      task_queue.push_back(0);
 
       int tmp_step, max_step = 0;
       bool pass_flag = true;
       while (!List[last].is_scheduled()) {
-        for (const int &current_parent : parent_queue) {
+        for (const int &current_parent : task_queue) {
           // iterate over all child nodes
           for (const int &child_label : List[current_parent].children) {
             // if all of the parents of the child node have been scheduled, push it into task queue
@@ -264,28 +266,30 @@ namespace Schedule_Alg {
           }
         }
 
-        parent_queue = std::move(wait_queue);
+        task_queue = std::move(wait_queue);
         wait_queue.clear();
-        wait_queue.reserve(2 * parent_queue.size());
+        wait_queue.reserve(2 * task_queue.size());
       }
 
       for (Node &node : List)
         node.set_scheduled(false);
+
+      wait_queue.clear(), task_queue.clear();
     }    // end ASAP
 
-    bool ALAP(const int latency) noexcept
+    bool Alg_ALAP(const int latency) noexcept
     {
       using namespace Type_base;
-      std::vector<int> wait_queue, child_queue;
+
       int last = List.size() - 1;
       List[last].set_scheduled(true);
       List[last].set_tL(latency + 2);
-      child_queue.push_back(last);
+      task_queue.push_back(last);
 
       int tmp_step, min_step = latency + 2;
       bool pass_flag = true;
       while (!List[0].is_scheduled()) {
-        for (const int &current_child : child_queue) {
+        for (const int &current_child : task_queue) {
           for (const int &parent_label : List[current_child].parents) {
             for (const int &child_label : List[parent_label].children) {
               if (!List[child_label].is_scheduled()) {
@@ -311,20 +315,78 @@ namespace Schedule_Alg {
           }
         }
 
-        child_queue = std::move(wait_queue);
+        task_queue = std::move(wait_queue);
         wait_queue.clear();
-        wait_queue.reserve(2 * child_queue.size());
+        wait_queue.reserve(2 * task_queue.size());
       }
 
-      for (Node &node : List)
-        node.set_scheduled(false);
+      for (Node &node : List) {
+        // if the node is critical node, scheduled it
+        if (node.get_type() == TYPE::INPUT) {
+          node.set_scheduled(true);
+          node.set_tL(0);
+          node.set_layer(0);
+        }
+        else if (node.get_tL() == node.get_tS())
+          node.set_layer(node.get_tS());
+        else
+          node.set_scheduled(false);    // recover the node statement
+      }
+
+      List[0].set_scheduled(false);
+      List[1].set_scheduled(false);
+      wait_queue.clear(), task_queue.clear();
 
       return true;    // success scheduled
     }    // end ALAP
   }    // namespace Alg_detail
 
-  void Force(const int latency) noexcept
+  void Force(const int latency, std::vector<int> &Output) noexcept
   {
+    using namespace Type_base;
+    std::vector<int> add_distr(latency), multi_distr(latency);
+
+    auto compute_distr = [&add_distr, &multi_distr]() {
+      int top, bottom;
+      double local_probability;
+      for (Node &node : List) {
+        if (node.is_changed()) {
+          local_probability = (1 / (node.get_tL() - node.get_tS() + 1));
+          top = node.get_tS(), bottom = node.get_tL();
+
+          for (int layer = top; layer != bottom; ++layer) {
+            if (node.get_type() == TYPE::ADD)
+              add_distr[layer] += local_probability;
+            else if (node.get_type() == TYPE::MULTIPLY)
+              multi_distr[layer] += local_probability;
+          }
+
+          node.set_changed(false);
+        }
+      }
+    };
+
+    auto compute_self_force = [&]() {
+      int top, bottom;
+      double base_distr, local_probability;
+      for (Node &node : List) {
+        if (!node.is_scheduled()) {
+          top = node.get_tS(), bottom = node.get_tL();
+
+          for (int layer = top; layer != bottom; ++layer) {
+            if (node.get_type() == TYPE::ADD)
+              base_distr = add_distr[]
+          }
+        }
+      }
+    };
+
+
+
+    compute_distr();
+
+
+    std::vector<int> wait_queue;
   }
 }    // namespace Schedule_Alg
 
@@ -349,8 +411,8 @@ int main(int argc, char *argv[])
 
 
   using namespace Schedule_Alg::Alg_detail;
-  ASAP();
-  ALAP(latency);
+  Alg_ASAP();
+  Alg_ALAP(latency);
 
   for (const auto &node : List) {
     std::cout << node.get_label() << " Parent is : ";
