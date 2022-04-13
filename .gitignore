@@ -1,4 +1,5 @@
 *.exe
 *.pdf
+*.out
 TEST.CPP
 /.vscode
