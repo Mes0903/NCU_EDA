@@ -133,7 +133,7 @@ namespace Schedule_Alg {
     return true;    // success scheduled
   }    // end ALAP
 
-  inline void Alg_detail::push_answ(const Type_base::Node &node, std::vector<std::deque<int>> &Output)
+  void Alg_detail::push_answ(const Type_base::Node &node, std::vector<std::deque<int>> &Output)
   {
     // Push the node into the answer buffer.
     if (node.is_normal())
@@ -141,7 +141,7 @@ namespace Schedule_Alg {
         Output.at(layer).push_back(node.get_label());
   };    // end push_answ function
 
-  inline std::vector<double> *
+  std::vector<double> *
   Alg_detail::distr_case(const Type_base::TYPE &Type, std::vector<double> &add_distr, std::vector<double> &multi_distr)
   {
     using Type_base::TYPE;

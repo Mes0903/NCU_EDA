@@ -10,8 +10,8 @@
 namespace Transform {
 
   // for transformation using object
-  std::string buf;
-  std::stringstream ss;
+  extern std::string buf;
+  extern std::stringstream ss;
 
   /**
    * @namespace tr_detail

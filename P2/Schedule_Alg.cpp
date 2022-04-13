@@ -2,6 +2,9 @@
 #include "Type_base.h"
 
 namespace Schedule_Alg {
+
+  std::vector<Type_base::Node> List;    // The List of the nodes.
+
   bool Force(const int latency, std::vector<std::deque<int>> &Output)
   {
     using namespace Type_base;

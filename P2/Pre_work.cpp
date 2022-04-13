@@ -6,7 +6,7 @@ namespace Schedule_Alg {
   extern std::vector<Type_base::Node> List;    // The List of the nodes.
 }
 
-inline void Pre_work::get_title(std::istream &in_file, int &latency, int &node_num, int &edge_num)
+void Pre_work::get_title(std::istream &in_file, int &latency, int &node_num, int &edge_num)
 {
   using Schedule_Alg::List;
   using Transform::buf;
@@ -21,7 +21,7 @@ inline void Pre_work::get_title(std::istream &in_file, int &latency, int &node_n
   List.emplace_back(0, TYPE::BEGIN);    // Push the Begin NOP node into the List.
 }    // end get_title function
 
-inline void Pre_work::get_node(std::istream &in_file, const int node_num)
+void Pre_work::get_node(std::istream &in_file, const int node_num)
 {
   using Schedule_Alg::List;
   using Transform::buf;
@@ -61,7 +61,7 @@ inline void Pre_work::get_node(std::istream &in_file, const int node_num)
   }
 }    // end get_node function
 
-inline void Pre_work::build_edge(std::istream &in_file, const int edge_num)
+void Pre_work::build_edge(std::istream &in_file, const int edge_num)
 {
   using Schedule_Alg::List;
   using Transform::buf;
