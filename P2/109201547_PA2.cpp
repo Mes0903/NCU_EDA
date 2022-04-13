@@ -21,9 +21,6 @@
 #define SECOND_LAYER_OPT
 #define TOP_TO_BOTTOM
 
-// the number of operators
-int ADD_NUM = 0, MULTIPLY_NUM = 0;
-
 /* forward declarations */
 namespace Type_base {
   class Node;
@@ -454,37 +451,14 @@ namespace Schedule_Alg {
     /**
      * @brief Push the node into the answer buffer and update the amount of operators.
      * @param node The target node.
-     * @param NUM_LABEL For count how many operator need, for each pair, member was <adder num, multiplier num>.
      * @param Output The Answer buffer.
      */
-    void push_answ(const Type_base::Node &node, std::vector<std::pair<int, int>> &NUM_LABEL, std::vector<std::deque<int>> &Output)
+    inline void push_answ(const Type_base::Node &node, std::vector<std::deque<int>> &Output)
     {
       using Type_base::TYPE;
-
-      if (node.get_type() == TYPE::ADD) {
-        // Push the node into the answer buffer.
-        for (int i = 0, layer = node.get_tS() - 1; i < node.get_unit(); ++layer, ++i) {
-          ++NUM_LABEL[layer].first;
-          Output.at(layer).push_back(node.get_label());
-        }
-
-        int &cnt = NUM_LABEL[node.get_tS() - 1].first;    // A temporary reference refer to the adder amount storer in the corresponding layer.
-        // If the amount was bigger than the max amount stored now, update it.
-        if (ADD_NUM < cnt)
-          ADD_NUM = cnt;
-      }
-      else if (node.get_type() == TYPE::MULTIPLY) {
-        // Push the node into the answer buffer.
-        for (int i = 0, layer = node.get_tS() - 1; i < node.get_unit(); ++layer, ++i) {
-          ++NUM_LABEL[layer].second;
-          Output.at(layer).push_back(node.get_label());
-        }
-
-        int &cnt = NUM_LABEL[node.get_tS() - 1].second;    // A temporary reference refer to the multiplier amount storer in the corresponding layer.
-        // If the amount was bigger than the max amount stored now, update it.
-        if (MULTIPLY_NUM < cnt)
-          MULTIPLY_NUM = cnt;
-      }
+      // Push the node into the answer buffer.
+      for (int i = 0, layer = node.get_tS() - 1; i < node.get_unit(); ++layer, ++i)
+        Output.at(layer).push_back(node.get_label());
     };    // end push_answ function
 
     /**
@@ -512,13 +486,11 @@ namespace Schedule_Alg {
      *
      * @param add_distr The adder Operation-type distribution.
      * @param multi_distr The multiplier Operation-type distribution.
-     * @param NUM_LABEL For count how many operator need, for each pair, member was <adder num, multiplier num>.
      * @param Output The Answer buffer.
      */
     void
     compute_distr(std::vector<double> &add_distr,
                   std::vector<double> &multi_distr,
-                  std::vector<std::pair<int, int>> &NUM_LABEL,
                   std::vector<std::deque<int>> &Output)
     {
       // Refresh the distribution.
@@ -533,7 +505,7 @@ namespace Schedule_Alg {
         if (node.get_mobility() == 0 && !node.is_scheduled()) {
           node.set_layer(node.get_tS());
           node.set_scheduled(true);
-          push_answ(node, NUM_LABEL, Output);
+          push_answ(node, Output);
         }
 
         local_tS = node.get_tS(), local_tL = node.get_tL();
@@ -569,8 +541,6 @@ namespace Schedule_Alg {
       return false;
     }
 
-    std::vector<std::pair<int, int>> NUM_LABEL(latency, std::pair<int, int>(0, 0));    // For count how many operator need, for each pair, member was <adder num, multiplier num>.
-
 #ifdef TOP_TO_BOTTOM
     // Initialize wait_queue, push the BEGIN NOP node into the wait queue.
     std::queue<int>
@@ -596,7 +566,7 @@ namespace Schedule_Alg {
       if (node.get_mobility() == 0 && !node.is_scheduled()) {
         node.set_layer(node.get_tS());
         node.set_scheduled(true);
-        Alg_detail::push_answ(node, NUM_LABEL, Output);    // Push it into answer node.
+        Alg_detail::push_answ(node, Output);    // Push it into answer node.
       }
       if (!node.is_scheduled()) {
         wait_queue.push_back(node.get_label());
@@ -687,7 +657,7 @@ namespace Schedule_Alg {
     };
 
 
-    Alg_detail::compute_distr(add_distr, multi_distr, NUM_LABEL, Output);    // Compute the Operation-type distribution first time.
+    Alg_detail::compute_distr(add_distr, multi_distr, Output);    // Compute the Operation-type distribution first time.
 
 #ifdef TOP_TO_BOTTOM
     // If the wait queue was empty, all the node was scheduled.
@@ -786,7 +756,7 @@ namespace Schedule_Alg {
 
           List[target_label].set_layer(target_layer);
           List[target_label].set_scheduled(true);
-          Alg_detail::push_answ(List[target_label], NUM_LABEL, Output);    // Push it into answer node.
+          Alg_detail::push_answ(List[target_label], Output);    // Push it into answer node.
 
           // If the node will influence the tS of its child node, the value of tS of child node should be fixed
           for (const int &child_label : List[target_label].children) {
@@ -795,7 +765,7 @@ namespace Schedule_Alg {
           }
 
           // Recompute the Operation-type probobality distribution.
-          Alg_detail::compute_distr(add_distr, multi_distr, NUM_LABEL, Output);
+          Alg_detail::compute_distr(add_distr, multi_distr, Output);
         }
       }
     }
@@ -884,9 +854,30 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  using Schedule_Alg::List;
+  using Type_base::TYPE;
+  int ADD_NUM = 0, MULTIPLY_NUM = 0;
+  for (const auto &line : Output) {
+    int add_cnt = 0, multi_cnt = 0;
+
+    for (const int &label : line) {
+      switch (List[label].get_type()) {
+      case TYPE::ADD:
+        ++add_cnt;
+        if (add_cnt > ADD_NUM)
+          ADD_NUM = add_cnt;
+        break;
+
+      case TYPE::MULTIPLY:
+        ++multi_cnt;
+        if (multi_cnt > MULTIPLY_NUM)
+          MULTIPLY_NUM = multi_cnt;
+      }
+    }
+  }
 
   /* output ans to the file*/
-  std::ofstream out_file(File_name + "_opt_test.out");
+  std::ofstream out_file(File_name + ".out");
   if (!out_file.is_open()) {
     std::cerr << "Cannot open file: " << File_name << '\n';
     exit(1);
@@ -898,8 +889,11 @@ int main(int argc, char *argv[])
   for (auto &line : Output) {
     std::sort(line.begin(), line.end());
     while (!line.empty()) {
-      out_file << line.front() << ' ';
+      out_file << line.front();
       line.pop_front();
+
+      if (!line.empty())
+        out_file << ' ';
     }
 
     out_file << '\n';
