@@ -488,7 +488,7 @@ namespace Schedule_Alg {
       }
     }
 #else
-    std::vector<std::tuple<int, int, double>> force_buffer;
+    std::vector<std::tuple<int, int, double>> force_buffer;    // a tmp buffer, using in every for loop.
     while (!wait_queue.empty()) {
       for (const int &target_label : wait_queue) {
         int target_tS = List[target_label].get_tS(), target_tL = List[target_label].get_tL();    // The tmp tS and tL used in for loop.
