@@ -1,3 +1,12 @@
+/**
+ * @file 109201547_PA2.cpp
+ * @author Mes (109201547)
+ * @brief Pre-work for the main function and bulding nodes for algorithm.
+ * @version 0.1
+ * @date 2022-04-13
+ * @bug No known bugs.
+ */
+
 #ifndef PRE_WORK_H
 #define PRE_WORK_H
 #include <fstream>

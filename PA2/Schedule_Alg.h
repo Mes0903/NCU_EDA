@@ -1,3 +1,12 @@
+/**
+ * @file 109201547_PA2.cpp
+ * @author Mes (109201547)
+ * @brief The Force Algorithm and the dependence algorithm
+ * @version 0.1
+ * @date 2022-04-14
+ * @bug No known bugs.
+ */
+
 #ifndef SCHEDULE_ALG_H
 #define SCHEDULE_ALG_H
 

@@ -19,20 +19,20 @@ namespace Type_base {
 
 int main(int argc, char *argv[])
 {
-  std::string File_name = argv[1];
-
   /* open the file and check if it opened successfully */
-  std::ifstream in_file(File_name);
+  std::ifstream in_file(argv[1]);
   if (!in_file.is_open()) {
-    std::cerr << "Cannot open file: " << File_name << '\n';
+    std::cerr << "Cannot open file: " << argv[1] << '\n';
     exit(1);
   }
 
+  // build node
   int latency{}, node_num{}, edge_num{};
   Pre_work::get_title(in_file, latency, node_num, edge_num);
   Pre_work::get_node(in_file, node_num);
   Pre_work::build_edge(in_file, edge_num);
 
+  // build answer buffer.
   std::vector<std::deque<int>> Output(latency);
   bool success_flag = Schedule_Alg::Force(latency, Output);
   if (!success_flag) {
@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  // count the amount of adder and multiplier
   using Schedule_Alg::List;
   using Type_base::TYPE;
   int ADD_NUM = 0, MULTIPLY_NUM = 0;
@@ -47,7 +48,6 @@ int main(int argc, char *argv[])
     int add_cnt = 0, multi_cnt = 0;
 
     for (const int &label : line) {
-      // count the amount of adder and multiplier
       switch (List[label].get_type()) {
       case TYPE::ADD:
         ++add_cnt;
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
   /* output ans to the file*/
   std::ofstream out_file(argv[2]);
   if (!out_file.is_open()) {
-    std::cerr << "Cannot open file: " << File_name << '\n';
+    std::cerr << "Cannot open file: " << argv[2] << '\n';
     exit(1);
   }
 

@@ -1,3 +1,12 @@
+/**
+ * @file 109201547_PA2.cpp
+ * @author Mes (109201547)
+ * @brief The implementation of parse_type function in Type_base.h.
+ * @version 0.1
+ * @date 2022-04-14
+ * @bug No known bugs.
+ */
+
 #include "Type_base.h"
 
 /**

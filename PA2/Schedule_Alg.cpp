@@ -1,3 +1,12 @@
+/**
+ * @file 109201547_PA2.cpp
+ * @author Mes (109201547)
+ * @brief The implementation of Schedule Algorithm.
+ * @version 0.1
+ * @date 2022-04-14
+ * @bug No known bugs.
+ */
+
 #include "Schedule_Alg.h"
 
 namespace Schedule_Alg {
@@ -234,7 +243,6 @@ namespace Schedule_Alg {
 
 namespace Schedule_Alg {
 
-
   /**
    * @brief Compute the Force-Directed Algorithm
    *
@@ -256,8 +264,7 @@ namespace Schedule_Alg {
 
 #ifdef TOP_TO_BOTTOM
     // Initialize wait_queue, push the BEGIN NOP node into the wait queue.
-    std::queue<int>
-      wait_queue;
+    std::queue<int> wait_queue;
     wait_queue.push(0);
     List[0].set_waiting(true);
 #else
@@ -294,13 +301,6 @@ namespace Schedule_Alg {
     std::vector<std::pair<int, double>> total_force;    // The force of one node, will be clear after each for loop, the element is <layer number, total force>.
 #else
     std::vector<std::tuple<int, int, double>> total_force;    // The force of all node, the element is <node label, layer number, max total force>.
-#endif
-
-    std::vector<double> *target_distr;    // Two tmp pointer point to the corresponding distribution.
-
-#ifdef SECOND_LAYER_OPT
-    std::vector<double> *second_distr;
-#endif
 
     /**
      * @brief Compute the Total Successor force caused by all the node in child node list of the target.
@@ -368,7 +368,13 @@ namespace Schedule_Alg {
 
       return buffer;
     };
+#endif
 
+    std::vector<double> *target_distr;    // Two tmp pointer point to the corresponding distribution.
+
+#ifdef SECOND_LAYER_OPT
+    std::vector<double> *second_distr;
+#endif
     Alg_detail::compute_distr(add_distr, multi_distr, Output);    // Compute the Operation-type distribution first time.
 
 #ifdef TOP_TO_BOTTOM
