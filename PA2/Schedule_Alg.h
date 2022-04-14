@@ -8,6 +8,13 @@
 #include <vector>
 #include "Type_base.h"
 
+// Force Alg approach 2, Scheduled node from top to bottom, ref may be more, but less execution time
+// default approach 1, sheduled all nodes each loop, ref may reduce, but more execution time
+#define TOP_TO_BOTTOM
+
+// Optmize for second Force approach
+// ref may reduce, but more execution time
+//#define SECOND_LAYER_OPT
 
 namespace Type_base {
   class Node;

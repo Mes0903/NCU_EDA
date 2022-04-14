@@ -1,6 +1,17 @@
 #include "Type_base.h"
 
+/**
+ * @namespace Type_base
+ * All the type for implementing Algorithm are in this namespace.
+ */
 namespace Type_base {
+
+  /**
+   * @brief Mapping the type from character to enum class
+   *
+   * @param c The type descripted by character, type in source file was descripted in character.
+   * @return TYPE The corresponding type of the node.
+   */
   TYPE parse_type(const char c)
   {
     switch (c) {

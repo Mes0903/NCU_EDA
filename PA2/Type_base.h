@@ -27,6 +27,22 @@ namespace Type_base {
    * @return TYPE The corresponding type of the node.
    */
   TYPE parse_type(const char c);
+
+  /**
+   * The type of the element in the List. The data structure of the List is Doubly Linked List, implemented by vector with index.
+   *
+   * Node has two pointer list, one point to the parent node list, one point to the child node list.
+   *
+   * There are several member in nodes:
+   * unit: integer, The unit time of the node.
+   * label: integer, The label of the node. Used to implemented Linked List.
+   * layer: integer, The layer of the node in Force Algorithm.
+   * tS: integer, The layer of the node in ASAP Algorithm.
+   * tL: integer, The layer of the node in ALAP Algorithm.
+   * Type: enum, The operation type of the node.
+   * waiting: bool, The flag of whether the node was in waiting list.
+   * scheduled: bool, The flag of whether of the node has been scheduled.
+   */
   class Node {
   public:
     // setter
