@@ -14,15 +14,12 @@ namespace Type_base {
   class Node;
 }
 
-namespace Schedule_Alg {
-  extern std::vector<Type_base::Node> List;
-}
 /* End forward declarations */
 
 
 int main(int argc, char *argv[])
 {
-  std::string File_name = "D:\\NCU_EDA\\P2\\testcase2";
+  std::string File_name = argv[1];
 
   /* open the file and check if it opened successfully */
   std::ifstream in_file(File_name);
@@ -67,7 +64,7 @@ int main(int argc, char *argv[])
   }
 
   /* output ans to the file*/
-  std::ofstream out_file(File_name + ".out");
+  std::ofstream out_file(argv[2]);
   if (!out_file.is_open()) {
     std::cerr << "Cannot open file: " << File_name << '\n';
     exit(1);

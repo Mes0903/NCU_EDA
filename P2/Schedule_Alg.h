@@ -4,7 +4,10 @@
 #include <algorithm>
 #include <queue>
 #include <stack>
+#include <tuple>
 #include <vector>
+#include "Type_base.h"
+
 
 namespace Type_base {
   class Node;
@@ -17,7 +20,7 @@ namespace Type_base {
  */
 namespace Schedule_Alg {
 
-  std::vector<Type_base::Node> List;    // The List of the nodes.
+  extern std::vector<Type_base::Node> List;    // The List of the nodes.
 
   /**
    * @namespace Alg_detail
@@ -45,8 +48,7 @@ namespace Schedule_Alg {
      * @param node The target node.
      * @param Output The Answer buffer.
      */
-    inline void push_answ(const Type_base::Node &node, std::vector<std::deque<int>> &Output);
-
+    void push_answ(const Type_base::Node &node, std::vector<std::deque<int>> &Output);
 
     /**
      * @brief Get the corresponding distribution based on what the Type is.
@@ -56,9 +58,8 @@ namespace Schedule_Alg {
      * @param multi_distr The multiplier Operation-type distribution.
      * @return The pointer of the corresponding distribution, nullptr if the Type was not normal type(add or multiply).
      */
-    inline std::vector<double> *
+    std::vector<double> *
     distr_case(const Type_base::TYPE &Type, std::vector<double> &add_distr, std::vector<double> &multi_distr);
-
 
     /**
      * @brief Compute the Operation-type probobality distribution.
