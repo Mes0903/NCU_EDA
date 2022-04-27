@@ -1,9 +1,7 @@
-module example (i_a, i_b, i_c, o_a);
-input i_a, i_b, i_c;
+module example (a, b, c, o_a);
+input a, b, c;
 output o_a;
-wire l_ab, o_c;
-
-and and1(l_ab, i_a, i_b);
-and and2(o_c, l_ab, i_c);
-
+wire o_c;
+and and1(o_a, a, b);
+and and2(o_c, a, c);
 endmodule
