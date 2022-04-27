@@ -169,6 +169,7 @@ void make_bool_expr()
     answ_line.clear();
   }
 
+  std::cout << "the final output is : ";
   for (const auto line : articles) {
     std::cout << line << '\n';
   }
