@@ -9,14 +9,6 @@
 
 #include "pre_declared.h"
 
-/* forward declarations */
-namespace Type_base {
-  class Node;
-}
-
-/* End forward declarations */
-
-
 int main(int argc, char *argv[])
 {
   /* open the file and check if it opened successfully */
