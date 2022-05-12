@@ -1,6 +1,5 @@
 *.exe
 *.pdf
-*.out
 *.o
 *.gch
 TEST.CPP
