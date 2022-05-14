@@ -1,18 +1,10 @@
 /**
  * @file 109201547_PA3.cpp
- * @author your name (you@domain.com)
- * @brief
+ * @author 109201547
  * @version 0.1
- * @date 2022-05-11
+ * @date 2022-05-14
  *
  * @copyright Copyright (c) 2022
- *
- * 1. 讀檔
- * 2. 建立 Cell_List、Bucket_List
- * 3. 分區塊 X、Y (初始分割)
- * 4. 計算初始 Gain
- * 5. 建立 Gain Bucket List
- * 6.
  */
 
 #include <cstdlib>
@@ -23,344 +15,290 @@
 #include <sstream>
 #include <string>
 #include <unordered_set>
-#include <vector>
 
-#define clear_ss(ss) \
-  ss.str("");        \
-  ss.clear()
-
+// the position of circuit
 enum class POS { X,
                  Y };
 
+// a cell
 struct Node {
-  std::string name;
-  int gain;
-  POS pos;
-  bool lock, cal;
-  Node *prev, *next;
+  std::string name;    // cell name
+  int gain;    // cell gain
+  POS pos;    // cell position
+  bool lock;    // if cell is locked
 
   Node() = default;
-  Node(std::string name, int label, POS pos, int gain = 0, bool lock = false, bool cal = false, Node *prev = nullptr, Node *next = nullptr)
-      : name(name), pos(pos), gain(gain), lock(lock), cal(cal), prev(prev), next(next) {}
-
-  bool operator==(std::string target) { return name == target; }
+  Node(std::string name, POS pos, int gain = 0, bool lock = false)
+      : name(name), gain(gain), pos(pos), lock(lock) {}
 };
 
-std::vector<Node *> X, Y;
-std::map<std::string, Node> Total;    // Gain Bucket
-Node **X_max = nullptr, **Y_max = nullptr;
+std::map<std::string, Node> Total;    // The list of all node.
+Node *X_max = nullptr, *Y_max = nullptr;    // point to the max gain node.
 
-std::map<std::string, std::unordered_set<std::string>> Cell_List, Net_List;
-int Bucket_size = 0;    // -p(i) <= g(i) <= p(i)
-int node_num, net_num;
-int cut_size = 0;
+std::map<std::string, std::unordered_set<std::string>> Cell_List, Net_List;    // Cell List and Net List
+int Bucket_size = 0;    // the number of max pin of a node.
+int node_num;    // the number of nodes.
 
-void print_bucket()
-{
-  puts("X");
-  for (auto ptr : X) {
-    while (ptr) {
-      std::cout << ptr->name << " ";
-      ptr = ptr->next;
-    }
-    puts("");
-  }
-  puts("Y");
-  for (auto ptr : Y) {
-    while (ptr) {
-      std::cout << ptr->name << " ";
-      ptr = ptr->next;
-    }
-    puts("");
-  }
-}
-
-void print_List()
-{
-  for (const auto p : Cell_List) {
-    std::cout << p.first << " ";
-    for (const auto net : p.second) {
-      std::cout << net << " ";
-    }
-    puts("");
-  }
-
-  for (const auto p : Net_List) {
-    std::cout << p.first << " ";
-    for (const auto node : p.second) {
-      std::cout << node << " ";
-    }
-    puts("");
-  }
-}
-
-void append_bucket(Node **head, Node *node)
-{
-  Node **indirect = head;
-  while (*indirect)
-    indirect = &((*indirect)->next);
-
-  *indirect = node;
-}
-
+/**
+ * @brief Set the max gain pointer
+ * 
+ */
 void set_max_gain()
 {
-  Node *direct;
+  int max_x_gain = -2 * Bucket_size, max_y_gain = -2 * Bucket_size;
+  bool x_change = false, y_change = false;
 
-  for (int i = 2 * Bucket_size - 2; i >= 0; --i) {
-    direct = X.at(i);
-    while (direct) {
-      if (!direct->lock)
-        break;
-
-      direct = direct->next;
-    }
-    if (direct && !direct->lock) {
-      X_max = &X.at(i);
-      break;
-    }
-  }
-
-  for (int i = 2 * Bucket_size - 2; i >= 0; --i) {
-    direct = Y.at(i);
-
-    while (direct) {
-      if (!direct->lock)
-        break;
-
-      direct = direct->next;
-    }
-
-    if (direct && !direct->lock) {
-      Y_max = &Y.at(i);
-      break;
-    }
-  }
-}
-
-void initialize_cut_size()
-{
-  std::string target;
-
-  for (auto &p : Cell_List) {
-    target = p.first;
-    Total[target].cal = true;
-
-    for (const auto &net : p.second) {
-      for (const auto &find : Net_List[target]) {
-        if (find == target)
-          continue;
-
-        if ((Total[target].pos != Total[find].pos) && !Total[find].cal)
-          ++cut_size;
-      }
-    }
-  }
-}
-
-void FM_alg()
-{
-  auto swap_and_add = [](Node *&target) {
-    int prev_index, index;
-    Node **indirect, **head;
-    (*target).lock = true;
-
-    // calculate new gain
-    for (const auto &net : Cell_List[target->name]) {
-      for (auto &find : Net_List[net]) {
-        if (target->name == find)
-          continue;
-
-        if (Total[find].lock)
-          continue;
-
-        prev_index = Total[find].gain + Bucket_size - 1;
-
-        if (Total[target->name].pos == Total[find].pos) {
-          --cut_size;
-          Total[target->name].gain -= 2;
-          Total[find].gain -= 2;
-        }
-        else {
-          ++cut_size;
-          Total[target->name].gain += 2;
-          Total[find].gain += 2;
-        }
-
-        // add the related node to the gain bucket
-        index = Total[find].gain + Bucket_size - 1;
-        std::cout << "index: " << index << " ";
-        std::cout << "gain: " << Total[find].gain << " ";
-        std::cout << "name: " << Total[find].name << "\n";
-
-        if (Total[find].pos == POS::X) {
-          indirect = &X.at(prev_index);
-          head = &X.at(index);
-        }
-        else {
-          indirect = &Y.at(prev_index);
-          head = &Y.at(index);
-        }
-
-        // delete it in the bucket
-        while (*indirect && *indirect != &Total[find])
-          indirect = &((*indirect)->next);
-
-        *indirect = Total[find].next;
-        Total[find].next = nullptr;
-
-        append_bucket(head, &Total[find]);
-        print_bucket();
-      }
-    }
-
-    // add to the gain bucket
-    index = Total[target->name].gain + Bucket_size - 1;
-    if (Total[target->name].pos == POS::X)
-      append_bucket(&X.at(index), target);
-    else
-      append_bucket(&Y.at(index), target);
-  };
-
-  // the first swap
-  Node *target_X, *target_Y, *direct;
-  int X_size = 0, Y_size = 0, lock_num = 0;
-
-  while (lock_num != node_num) {
-    std::cout << "lock_num: " << lock_num << " " << node_num << '\n';
-    set_max_gain();
-
-    for (Node *ptr : X) {
-      if (ptr) {
-        direct = ptr->next;
-        while (direct) {
-          puts("c");
-          ++X_size;
-
-          if (direct->lock && direct->cal) {
-            direct->cal = false;
-            ++lock_num;
-          }
-
-          direct = direct->next;
-        }
-      }
-    }
-
-    for (Node *ptr : Y) {
-      if (ptr) {
-        direct = ptr->next;
-        while (direct) {
-          puts("d");
-          ++Y_size;
-
-          if (direct && direct->lock && direct->cal) {
-            direct->cal = false;
-            ++lock_num;
-          }
-
-          direct = direct->next;
-        }
-      }
-    }
-
-    target_X = *X_max;
-    target_Y = *Y_max;
-
-    if (std::abs(X_size - Y_size) < node_num / 5) {
-      if ((**X_max).gain > (**Y_max).gain) {
-        *X_max = (*X_max)->next->next;
-        target_X->next = nullptr;
-        target_X->pos = POS::Y;
-        swap_and_add(target_X);
-      }
-      else {
-        *Y_max = (*Y_max)->next->next;
-        target_Y->next = nullptr;
-        target_Y->pos = POS::X;
-        swap_and_add(target_Y);
+  for (auto &p : Total) {
+    Node &node = p.second;
+    if (node.pos == POS::X) {
+      if (node.gain > max_x_gain && !node.lock) {
+        max_x_gain = node.gain;
+        X_max = &node;
+        x_change = true;
       }
     }
     else {
-      if (X_size > Y_size) {
-        *X_max = (*X_max)->next->next;
-        target_X->next = nullptr;
-        target_X->pos = POS::Y;
-        swap_and_add(target_X);
-      }
-      else {
-        *Y_max = (*Y_max)->next->next;
-        target_Y->next = nullptr;
-        target_Y->pos = POS::X;
-        swap_and_add(target_Y);
+      if (node.gain > max_y_gain && !node.lock) {
+        max_y_gain = node.gain;
+        Y_max = &node;
+        y_change = true;
       }
     }
   }
+
+  if (!x_change) X_max = nullptr;    // if the pointer didn't change, means that the corresponding side has no node can be changed.
+  if (!y_change) Y_max = nullptr;
 }
 
+/**
+ * @brief calculate the cut size.
+ * 
+ * @return the cut size
+ */
+int cal_cut_size()
+{
+  int cut_size = 0;
+  bool x_side, y_side;
+
+  for (const auto &p : Net_List) {
+    x_side = false, y_side = false;
+
+    for (const auto &node : p.second) {
+      if (Total[node].pos == POS::X)
+        x_side = true;
+      else
+        y_side = true;
+
+      // if there are to node in different side, it will cause the cut size + 1
+      if (x_side && y_side) {
+        ++cut_size;
+        break;
+      }
+    }
+  }
+
+  return cut_size;
+}
+
+/**
+ * @brief The Fiduccia-Mattheyses Algorithm
+ * 
+ */
+void FM_alg()
+{
+  auto swap_and_add = [](Node *&target, int &f, int &t) {
+    int from_side, to_side, target_from, target_to;
+    target->gain = 0;
+
+    for (const auto &net : Cell_List[target->name]) {
+      target_from = 0, target_to = 0;
+      from_side = 0, to_side = 0;
+
+      for (const auto &node : Net_List[net]) {
+        // calculate the F(n) and T(n).
+        if (Total[node].pos == target->pos) {
+          ++from_side;
+
+          // calculate the gain of the target.
+          if (node != target->name)
+            ++target_from;
+        }
+        else {
+          ++to_side;
+
+          // calculate the gain of the target.
+          if (node != target->name)
+            ++target_to;
+        }
+      }
+
+      if (target_from == 1) ++target->gain;
+      if (target_to == 1) --target->gain;
+
+      /* before move */
+      // calculate related gain
+      if (to_side == 0) {
+        for (auto &find : Net_List[net]) {
+          if (find == target->name)
+            continue;
+
+          if (!Total[find].lock)
+            ++Total[find].gain;
+        }
+      }
+      else if (to_side == 1) {
+        for (auto &find : Net_List[net]) {
+          if (find == target->name)
+            continue;
+
+          if (!Total[find].lock)
+            if (Total[find].pos != target->pos) {
+              --Total[find].gain;
+              break;
+            }
+        }
+      }
+
+      /* move node */
+      --from_side;
+      ++to_side;
+
+      /*after move*/
+      if (from_side == 0) {
+        for (auto &find : Net_List[net]) {
+          if (find == target->name)
+            continue;
+
+          if (!Total[find].lock)
+            --Total[find].gain;
+        }
+      }
+      else if (from_side == 1) {
+        for (auto &find : Net_List[net]) {
+          if (find == target->name)
+            continue;
+
+          if (!Total[find].lock)
+            if (Total[find].pos == target->pos) {
+              ++Total[find].gain;
+              break;
+            }
+        }
+      }
+    }
+
+    // lock the target and changed its postion
+    target->lock = true;
+    if (target->pos == POS::X)
+      target->pos = POS::Y;
+    else
+      target->pos = POS::X;
+
+    --f;
+    ++t;
+  };    // end lambda
+
+  int X_size = node_num / 2, Y_size = node_num / 2, lock_num = 0;
+
+  while (lock_num != node_num) {
+    set_max_gain();    // update the max node pointer
+
+    // |size(A) - size(B)| < n/5, n is the number of cells
+    if (static_cast<double>(std::abs((X_size - Y_size))) < static_cast<double>(node_num) / 5.0) {
+      if (X_max && Y_max) {
+        if (X_max->gain < 0 && Y_max->gain < 0)
+          break;
+
+        if (X_max->gain > Y_max->gain)
+          swap_and_add(X_max, X_size, Y_size);
+        else
+          swap_and_add(Y_max, Y_size, X_size);
+      }
+      else if (X_max) {
+        if (X_max->gain < 0)
+          break;
+
+        swap_and_add(X_max, X_size, Y_size);
+      }
+      else if (Y_max) {
+        if (Y_max->gain < 0)
+          break;
+
+        swap_and_add(Y_max, Y_size, X_size);
+      }
+      else
+        return;
+    }
+    else {
+      if (X_size > Y_size)
+        swap_and_add(X_max, X_size, Y_size);
+      else
+        swap_and_add(Y_max, Y_size, X_size);
+    }
+
+    ++lock_num;
+  }
+}
+
+/**
+ * @brief Initialize the Gain of cells
+ */
 void initialize_Gain_List()
 {
   // calculate initial gain
   std::string target;
+  int from_side, to_side;
+
   for (auto &p : Cell_List) {
     target = p.first;
 
     for (const auto &net : p.second) {
-      for (const auto &find : Net_List[target]) {
+      from_side = 0, to_side = 0;
+
+      // calculate F(n) and T(n).
+      for (const auto &find : Net_List[net]) {
         if (find == target)
           continue;
 
         if (Total[target].pos == Total[find].pos)
-          --Total[target].gain;
+          ++from_side;
         else
-          ++Total[target].gain;
+          ++to_side;
       }
-    }
 
-    // transforming index
-    int index = Total[target].gain + Bucket_size - 1;
-    if (Total[target].pos == POS::X) {
-      append_bucket(&X.at(index), &Total[target]);
-    }
-    else {
-      append_bucket(&Y.at(index), &Total[target]);
+      if (from_side == 1)
+        ++Total[target].gain;
+      if (to_side == 0)
+        --Total[target].gain;
     }
   }
 }
 
+/**
+ * @brief Build the cells list
+ * 
+ */
 void initialize_Node_List()
 {
   node_num = Cell_List.size();
   auto it = Cell_List.begin();
   for (int i = 0; i < node_num / 2; ++i) {
-    Total["c" + std::to_string(i + 1)] = Node{ "c" + std::to_string(i + 1), i, POS::X };
+    Total["c" + std::to_string(i + 1)] = Node{ "c" + std::to_string(i + 1), POS::X };
     ++it;
   }
 
   for (int i = node_num / 2; i < node_num; ++i) {
-    Total["c" + std::to_string(i + 1)] = Node{ "c" + std::to_string(i + 1), i, POS::Y };
+    Total["c" + std::to_string(i + 1)] = Node{ "c" + std::to_string(i + 1), POS::Y };
     ++it;
   }
-
-  std::cout << "Node List:";
-  for (const auto &[p, node] : Total) {
-    std::cout << node.name << " ";
-  }
-  puts("");
 }
 
-void initialize_Bucket()
-{
-  X.reserve(2 * Bucket_size - 1);
-  Y.reserve(2 * Bucket_size - 1);
-  std::cout << "X size is : " << 2 * Bucket_size - 1 << '\n';
-
-  for (int i = 0; i < 2 * Bucket_size - 1; ++i) {
-    X.emplace_back(nullptr);
-    Y.emplace_back(nullptr);
-  }
-}
-
+/**
+ * @brief Build the Cell List and Net List from the input file
+ * 
+ * @param name // The Cell Label
+ * @param parameter_list // The cell connect to the Label cell
+ */
 void push_list(std::string &name, std::string &parameter_list)
 {
   std::string::size_type begin, end;
@@ -382,8 +320,22 @@ void push_list(std::string &name, std::string &parameter_list)
     begin = end + 1;
     end = parameter_list.find(key, begin);
   }
+
+  if (begin != parameter_list.length()) {
+    tmp = parameter_list.substr(begin);
+    Cell_List[tmp].emplace(name);
+    Net_List[name].emplace(tmp);
+
+    if (Cell_List[tmp].size() > Bucket_size)
+      Bucket_size = Cell_List[tmp].size();
+  }
 };
 
+/**
+ * @brief parse the line of input.
+ * 
+ * @param line A line of input file.
+ */
 void parse_line(std::string line)
 {
   // Regex expression for one line.
@@ -401,7 +353,7 @@ void parse_line(std::string line)
 int main(int argc, char *argv[])
 {
   /* open the file and check if it opened successfully */
-  std::ifstream in_file("case0");
+  std::ifstream in_file(argv[1]);
   if (!in_file.is_open()) {
     std::cerr << "Cannot open file: " << argv[1] << '\n';
     exit(1);
@@ -412,39 +364,35 @@ int main(int argc, char *argv[])
   while (std::getline(in_file, buf))
     parse_line(buf);
 
-
-  initialize_Bucket();
   initialize_Node_List();
   initialize_Gain_List();
-  initialize_cut_size();
-  print_List();
-  puts("main");
-  print_bucket();
   FM_alg();
+  int cut_size = cal_cut_size();
 
   /* output ans to the file*/
-  std::ofstream out_file("case0_out");
+  std::ofstream out_file(argv[2]);
   if (!out_file.is_open()) {
     std::cerr << "Cannot open file: " << argv[2] << '\n';
     exit(1);
   }
 
-  out_file << "cut_size " << cut_size << "A\n";
-  Node **indirect;
-  for (Node *ptr : X) {
-    indirect = &ptr->next;
-    while (*indirect) {
-      out_file << (*indirect)->name << '\n';
-      indirect = &((*indirect)->next);
-    }
+  out_file << "cut_size " << cut_size << "\nA\n";
+
+  std::string name;
+  for (const auto &p : Total) {
+    name = p.first;
+    const Node &node = p.second;
+
+    if (node.pos == POS::X)
+      out_file << p.first << '\n';
   }
 
   out_file << "B\n";
-  for (Node *ptr : Y) {
-    indirect = &ptr->next;
-    while (*indirect) {
-      out_file << (*indirect)->name << '\n';
-      indirect = &((*indirect)->next);
-    }
+  for (const auto &p : Total) {
+    name = p.first;
+    const Node &node = p.second;
+
+    if (node.pos == POS::Y)
+      out_file << p.first << '\n';
   }
 }
