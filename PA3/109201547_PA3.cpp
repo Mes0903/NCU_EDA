@@ -306,20 +306,19 @@ void push_list(std::string line)
   end = line.find(key);
   begin = 0;
   int cnt = 0;
-
   while (end != std::string::npos) {
     ++cnt;
     if (end - begin != 0) {
       tmp = line.substr(begin, end - begin);
       if (cnt == 2)
         name = tmp;
-      else if (tmp != "{" && tmp != "}") {
+      else if (cnt > 2 && tmp != "{" && tmp != "}") {
         Cell_List[tmp].emplace(name);
         Net_List[name].emplace(tmp);
-      }
 
-      if (cnt > 2 && Cell_List[tmp].size() > Bucket_size)
-        Bucket_size = Cell_List[tmp].size();
+        if (cnt > 2 && Cell_List[tmp].size() > Bucket_size)
+          Bucket_size = Cell_List[tmp].size();
+      }
     }
 
     begin = end + 1;
@@ -330,7 +329,7 @@ void push_list(std::string line)
 int main(int argc, char *argv[])
 {
   /* open the file and check if it opened successfully */
-  std::ifstream in_file(argv[1]);
+  std::ifstream in_file("case0");
   if (!in_file.is_open()) {
     std::cerr << "Cannot open file: " << argv[1] << '\n';
     exit(1);
@@ -347,7 +346,7 @@ int main(int argc, char *argv[])
   int cut_size = cal_cut_size();
 
   /* output ans to the file*/
-  std::ofstream out_file(argv[2]);
+  std::ofstream out_file("case0_out");
   if (!out_file.is_open()) {
     std::cerr << "Cannot open file: " << argv[2] << '\n';
     exit(1);
