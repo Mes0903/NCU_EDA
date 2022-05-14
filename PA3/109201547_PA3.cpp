@@ -11,7 +11,6 @@
 #include <fstream>
 #include <iostream>
 #include <map>
-#include <regex>
 #include <sstream>
 #include <string>
 #include <unordered_set>
@@ -299,56 +298,34 @@ void initialize_Node_List()
  * @param name // The Cell Label
  * @param parameter_list // The cell connect to the Label cell
  */
-void push_list(std::string &name, std::string &parameter_list)
+void push_list(std::string line)
 {
   std::string::size_type begin, end;
-  std::string tmp;
-  const std::string key = " ";
-  end = parameter_list.find(key);
+  std::string tmp, name;
+  const char key = ' ';
+  end = line.find(key);
   begin = 0;
+  int cnt = 0;
 
   while (end != std::string::npos) {
+    ++cnt;
     if (end - begin != 0) {
-      tmp = parameter_list.substr(begin, end - begin);
-      Cell_List[tmp].emplace(name);
-      Net_List[name].emplace(tmp);
+      tmp = line.substr(begin, end - begin);
+      if (cnt == 2)
+        name = tmp;
+      else if (tmp != "{" && tmp != "}") {
+        Cell_List[tmp].emplace(name);
+        Net_List[name].emplace(tmp);
+      }
 
-      if (Cell_List[tmp].size() > Bucket_size)
+      if (cnt > 2 && Cell_List[tmp].size() > Bucket_size)
         Bucket_size = Cell_List[tmp].size();
     }
 
     begin = end + 1;
-    end = parameter_list.find(key, begin);
-  }
-
-  if (begin != parameter_list.length()) {
-    tmp = parameter_list.substr(begin);
-    Cell_List[tmp].emplace(name);
-    Net_List[name].emplace(tmp);
-
-    if (Cell_List[tmp].size() > Bucket_size)
-      Bucket_size = Cell_List[tmp].size();
+    end = line.find(key, begin);
   }
 };
-
-/**
- * @brief parse the line of input.
- * 
- * @param line A line of input file.
- */
-void parse_line(std::string line)
-{
-  // Regex expression for one line.
-  static const std::regex reg_module("^\\s*NET\\s+(.+)\\s+\\{(.+)\\}\\s*$");
-  static std::smatch match_list;
-  std::string parameter_list, name;
-
-  if (std::regex_match(line, match_list, reg_module)) {
-    name = match_list[1].str();
-    parameter_list = match_list[2].str();
-    push_list(name, parameter_list);
-  }
-}
 
 int main(int argc, char *argv[])
 {
@@ -362,7 +339,7 @@ int main(int argc, char *argv[])
   /* read one line and parse it */
   std::string buf;
   while (std::getline(in_file, buf))
-    parse_line(buf);
+    push_list(buf);
 
   initialize_Node_List();
   initialize_Gain_List();
