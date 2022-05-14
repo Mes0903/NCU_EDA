@@ -329,7 +329,7 @@ void push_list(std::string line)
 int main(int argc, char *argv[])
 {
   /* open the file and check if it opened successfully */
-  std::ifstream in_file("case0");
+  std::ifstream in_file(argv[1]);
   if (!in_file.is_open()) {
     std::cerr << "Cannot open file: " << argv[1] << '\n';
     exit(1);
@@ -346,7 +346,7 @@ int main(int argc, char *argv[])
   int cut_size = cal_cut_size();
 
   /* output ans to the file*/
-  std::ofstream out_file("case0_out");
+  std::ofstream out_file(argv[2]);
   if (!out_file.is_open()) {
     std::cerr << "Cannot open file: " << argv[2] << '\n';
     exit(1);
